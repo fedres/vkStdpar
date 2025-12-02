@@ -1,0 +1,50 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# Find required dependencies
+find_dependency(Vulkan REQUIRED)
+
+# Check for SYCL implementation
+if(NOT DEFINED VULKAN_STDPAR_NO_GPU)
+    # Try to find Sylkan first
+    find_dependency(PkgConfig QUIET)
+    pkg_check_modules(SYLKAN QUIET sylkan)
+    
+    if(NOT SYLKAN_FOUND)
+        # Try generic SYCL
+        find_dependency(SYCL QUIET)
+    endif()
+endif()
+
+# Include our targets
+include("${CMAKE_CURRENT_LIST_DIR}/VulkanStdparTargets.cmake")
+
+# Set variables for users
+set(VULKAN_STDPAR_VERSION "@PROJECT_VERSION@")
+set(VULKAN_STDPAR_VERSION_MAJOR "@PROJECT_VERSION_MAJOR@")
+set(VULKAN_STDPAR_VERSION_MINOR "@PROJECT_VERSION_MINOR@")
+set(VULKAN_STDPAR_VERSION_PATCH "@PROJECT_VERSION_PATCH@")
+
+# Check if GPU support is available
+if(TARGET VulkanStdpar::vulkan_stdpar)
+    get_target_property(_defs VulkanStdpar::vulkan_stdpar INTERFACE_COMPILE_DEFINITIONS)
+    if(_defs)
+        if("VULKAN_STDPAR_NO_GPU" IN_LIST _defs)
+            set(VULKAN_STDPAR_GPU_SUPPORT FALSE)
+        else()
+            set(VULKAN_STDPAR_GPU_SUPPORT TRUE)
+        endif()
+    else()
+        set(VULKAN_STDPAR_GPU_SUPPORT TRUE)
+    endif()
+else()
+    set(VULKAN_STDPAR_GPU_SUPPORT FALSE)
+endif()
+
+# Provide usage information
+if(NOT TARGET VulkanStdpar::vulkan_stdpar)
+    message(FATAL_ERROR "VulkanStdpar::vulkan_stdpar target not found!")
+endif()
+
+check_required_components(VulkanStdpar)
